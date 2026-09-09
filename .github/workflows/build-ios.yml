@@ -13,13 +13,15 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Select latest Xcode
+      - name: Select Xcode 16.4
         run: |
-          echo "=== Available Xcode versions ==="
-          ls -d /Applications/Xcode*
-          LATEST_XCODE=$(ls -d /Applications/Xcode* | sort -V | tail -n 1)
-          echo "Selecting: $LATEST_XCODE"
-          sudo xcode-select -s "$LATEST_XCODE/Contents/Developer"
+          if [ -d "/Applications/Xcode_16.4.app" ]; then
+            sudo xcode-select -s /Applications/Xcode_16.4.app/Contents/Developer
+          elif [ -d "/Applications/Xcode_16.3.app" ]; then
+            sudo xcode-select -s /Applications/Xcode_16.3.app/Contents/Developer
+          elif [ -d "/Applications/Xcode_26.3.app" ]; then
+            sudo xcode-select -s /Applications/Xcode_26.3.app/Contents/Developer
+          fi
           xcodebuild -version
           swift --version
 
@@ -32,8 +34,14 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Ensure Swift tools version compatibility
+      - name: Patch ExpoModulesJSI for compiler compatibility
         run: |
+          TARGET_HEADER="node_modules/expo-modules-jsi/apple/Sources/ExpoModulesJSI-Cxx/include/RuntimeScheduler.h"
+          if [ -f "$TARGET_HEADER" ]; then
+            echo "Patching SWIFT_RETURNS_RETAINED in RuntimeScheduler.h"
+            sed -i '' 's/SWIFT_RETURNS_RETAINED RuntimeScheduler/RuntimeScheduler/g' "$TARGET_HEADER"
+          fi
+
           SWIFT_MAJOR_MINOR=$(swift --version | head -n 1 | sed -E 's/.*version ([0-9]+\.[0-9]+).*/\1/')
           echo "Active Swift version: $SWIFT_MAJOR_MINOR"
           TARGET_PKG="node_modules/expo-modules-jsi/apple/Package.swift"
@@ -46,7 +54,6 @@ jobs:
               sed -i '' 's|\.enableUpcomingFeature("NonisolatedNonsendingByDefault"),|// .enableUpcomingFeature("NonisolatedNonsendingByDefault"),|g' "$TARGET_PKG"
               sed -i '' 's|\.enableUpcomingFeature("InferIsolatedConformances"),|// .enableUpcomingFeature("InferIsolatedConformances"),|g' "$TARGET_PKG"
             fi
-            head -n 5 "$TARGET_PKG"
           fi
 
       - name: Prebuild iOS project
