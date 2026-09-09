@@ -7,20 +7,21 @@ on:
 
 jobs:
   build-ipa:
-    runs-on: macos-14
+    runs-on: macos-15
     timeout-minutes: 35
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Select Xcode 16.1
+      - name: Select latest Xcode
         run: |
-          if [ -d "/Applications/Xcode_16.2.app" ]; then
-            sudo xcode-select -s /Applications/Xcode_16.2.app/Contents/Developer
-          elif [ -d "/Applications/Xcode_16.1.app" ]; then
-            sudo xcode-select -s /Applications/Xcode_16.1.app/Contents/Developer
-          fi
+          echo "=== Available Xcode versions ==="
+          ls -d /Applications/Xcode*
+          LATEST_XCODE=$(ls -d /Applications/Xcode* | sort -V | tail -n 1)
+          echo "Selecting: $LATEST_XCODE"
+          sudo xcode-select -s "$LATEST_XCODE/Contents/Developer"
           xcodebuild -version
+          swift --version
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -30,6 +31,23 @@ jobs:
 
       - name: Install dependencies
         run: npm install
+
+      - name: Ensure Swift tools version compatibility
+        run: |
+          SWIFT_MAJOR_MINOR=$(swift --version | head -n 1 | sed -E 's/.*version ([0-9]+\.[0-9]+).*/\1/')
+          echo "Active Swift version: $SWIFT_MAJOR_MINOR"
+          TARGET_PKG="node_modules/expo-modules-jsi/apple/Package.swift"
+          if [ -f "$TARGET_PKG" ]; then
+            CURRENT_TOOL_VER=$(head -n 1 "$TARGET_PKG" | sed -E 's/.*swift-tools-version: *([0-9]+\.[0-9]+).*/\1/')
+            echo "ExpoModulesJSI requested tools version: $CURRENT_TOOL_VER"
+            if [ "$(printf '%s\n' "$SWIFT_MAJOR_MINOR" "$CURRENT_TOOL_VER" | sort -V | head -n 1)" != "$CURRENT_TOOL_VER" ]; then
+              echo "Adjusting swift-tools-version from $CURRENT_TOOL_VER to $SWIFT_MAJOR_MINOR"
+              sed -i '' "1s/6.2/$SWIFT_MAJOR_MINOR/" "$TARGET_PKG"
+              sed -i '' 's|\.enableUpcomingFeature("NonisolatedNonsendingByDefault"),|// .enableUpcomingFeature("NonisolatedNonsendingByDefault"),|g' "$TARGET_PKG"
+              sed -i '' 's|\.enableUpcomingFeature("InferIsolatedConformances"),|// .enableUpcomingFeature("InferIsolatedConformances"),|g' "$TARGET_PKG"
+            fi
+            head -n 5 "$TARGET_PKG"
+          fi
 
       - name: Prebuild iOS project
         run: npx expo prebuild --platform ios --no-install
