@@ -1,4 +1,4 @@
-﻿name: Build iOS IPA
+name: Build iOS IPA
 
 on:
   push:
@@ -8,22 +8,36 @@ on:
 jobs:
   build-ipa:
     runs-on: macos-14
-    timeout-minutes: 30
+    timeout-minutes: 35
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Select Xcode 16.1
+        run: |
+          if [ -d "/Applications/Xcode_16.2.app" ]; then
+            sudo xcode-select -s /Applications/Xcode_16.2.app/Contents/Developer
+          elif [ -d "/Applications/Xcode_16.1.app" ]; then
+            sudo xcode-select -s /Applications/Xcode_16.1.app/Contents/Developer
+          fi
+          xcodebuild -version
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: 'npm'
 
       - name: Install dependencies
         run: npm install
 
       - name: Prebuild iOS project
-        run: npx expo prebuild --platform ios
+        run: npx expo prebuild --platform ios --no-install
+
+      - name: Install CocoaPods
+        run: |
+          cd ios
+          pod install
 
       - name: Build Archive (Unsigned)
         run: |
@@ -53,3 +67,4 @@ jobs:
           name: EcoleDirecteMulti-IPA
           path: EcoleDirecteMulti.ipa
           retention-days: 14
+
