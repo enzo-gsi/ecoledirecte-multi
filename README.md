@@ -16,23 +16,6 @@ Application mobile **100% native iOS** (React Native & Expo) conçue pour réuni
 
 ---
 
-## 🚀 Comment lancer l'application sur votre iPhone ?
-
-### Étape 1 : Installer Expo Go sur votre iPhone
-1. Ouvrez l'**App Store** sur votre iPhone.
-2. Recherchez **Expo Go** (application officielle gratuite) et installez-la.
-
-### Étape 2 : Lancer le serveur sur votre PC
-Double-cliquez simplement sur **`demarrer.bat`** (ou lancez `npx expo start` dans votre terminal).
-
-### Étape 3 : Scanner le QR Code
-1. Assurez-vous que votre iPhone est connecté au même réseau Wi-Fi que votre ordinateur.
-2. Ouvrez l'application **Appareil Photo** de votre iPhone et visez le QR Code affiché dans votre terminal.
-3. Touchez la bannière jaune **"Ouvrir dans Expo Go"**.
-4. L'application native se charge et tourne directement sur votre iPhone !
-
----
-
 ## 🛠️ Architecture Technique
 
 - **Framework** : React Native (SDK Expo 57)
